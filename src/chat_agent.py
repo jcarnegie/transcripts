@@ -4,14 +4,12 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAIChat
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import ChatMessage, AIMessage
 import openai
 from typing import AsyncGenerator, Optional, Tuple
-from chat import Conversation
+from transcripts.src.chat import Conversation
 
 import logging
 from vocode import getenv
@@ -19,6 +17,7 @@ from vocode import getenv
 from vocode.streaming.agent.base_agent import BaseAgent
 from vocode.streaming.models.agent import ChatGPTAgentConfig
 from vocode.streaming.agent.utils import stream_openai_response_async
+
 
 class ChatGPTAgent(BaseAgent):
     def __init__(
