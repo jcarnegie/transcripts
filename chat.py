@@ -17,10 +17,11 @@ def extract_sentences_with_word(text, word):
     return result
 
 class Conversation():
-    def __init__(self, name, job_title, speaking_style):
+    def __init__(self, name, job_title, speaking_style, mode):
         self.name = name
         self.job_title = job_title
         self.speaking_style = speaking_style
+        self.mode = mode
         self.messages = []
         self.statements_about_me = []
 
@@ -37,10 +38,14 @@ class Conversation():
                "You are also going to tell me what you think about life and how you handle different situations. " \
                "\n\n"
 
+    def get_coaching_prompt(self):
+        return "Here is a conversation between Jessica (coach) and her client: \n\n" \
+               "AI: Hello, I am available for you 24/7 to ask me questions and get advice.  " \
+               "\n\n"
+
     def get_relevant_statements(self, input, max_tokens):
         # statements = database.get_relevant_statements(input, max_tokens)
-        return ""
-        # return f"\n\nHere are some things {self.name} has said:\n\n"
+        return f"\n\nHere are some things {self.name} has said:\n\n"
 
     def update_statements_about_me(self, input):
         sentences = extract_sentences_with_word(input, "I")
@@ -51,13 +56,16 @@ class Conversation():
                 self.messages.pop()
 
     def get_prompt(self, input):
-        self.update_statements_about_me(input)
 
         first_part_of_prompt = self.about_me()
-        last_part_of_prompt = self.get_clone_prompt() \
-            + "\n\n".join(self.messages[-10:] if len(self.messages) > 10 else self.messages) \
-            + "\n\nHuman: " + input \
-            + "\n\nAI:"
+        if self.mode == 'Coaching':
+            last_part_of_prompt = self.get_coaching_prompt()
+        else:
+            self.update_statements_about_me(input)
+            last_part_of_prompt = self.get_clone_prompt()
+
+        last_part_of_prompt += "\n\n".join(self.messages[-10:] if len(self.messages) > 10 else self.messages)
+        last_part_of_prompt += "\n\nHuman: " + input + "\n\nAI:"
 
         total_tokens_used = len(first_part_of_prompt.split(' ')) + len(last_part_of_prompt.split(' '))
         relevant_statements = self.get_relevant_statements(input, max_tokens=MAX_TOKENS-total_tokens_used)
@@ -72,14 +80,15 @@ class Conversation():
         completion = openai.Completion.create(model="text-davinci-003",
                                               prompt=prompt,
                                               temperature=0.9,
-                                              max_tokens=150,
+                                              max_tokens=80,
                                               presence_penalty=0.5,
                                               frequency_penalty=0.5,
                                               stop=["Human:","AI:"])
 
         # add the response to the conversation
         ai_message = completion.choices[0].text
-        self.messages.append(ai_message)
+        self.messages.append("Human: " + input)
+        self.messages.append("AI: " + ai_message)
         return ai_message
 
     async def apredict(self, **kwargs: Any) -> str:
@@ -120,9 +129,11 @@ if __name__ == "__main__":
     conversation = Conversation(
         name='Jessica',
         job_title='Relationship Coach',
-        speaking_style=jessica_speaking_style
+        speaking_style=jessica_speaking_style,
+        mode='Coaching'
     )
 
     while True:
-        response = conversation.predict(input("Human: "))
-        print(f"AI: {response}")
+        human_input = input("Client: ")
+        response = conversation.predict(human_input)
+        print(f"{response}")
