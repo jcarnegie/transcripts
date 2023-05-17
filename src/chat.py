@@ -21,11 +21,11 @@ def extract_sentences_with_word(text, word) -> list[str]:
 
 
 class Conversation:
-    def __init__(self, name, job_title, speaking_style, mode):
+    def __init__(self, name, job_title, speaking_style, mode: str = None):
         self.name = name
         self.job_title = job_title
         self.speaking_style = speaking_style
-        self.mode = mode
+        self.mode = mode if mode else ""
         self.messages = []
         self.statements_about_me = []
         self.vectordb = vectordb(number_of_retrieval_results=3)
