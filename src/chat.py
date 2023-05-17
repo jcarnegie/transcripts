@@ -1,8 +1,9 @@
 import openai
-from os import getenv
 import re
+from os import getenv
 from vocode.streaming.models.agent import AgentConfig
 from typing import Any
+from .database import vectordb
 
 
 MAX_TOKENS = 4000
@@ -27,6 +28,7 @@ class Conversation:
         self.mode = mode
         self.messages = []
         self.statements_about_me = []
+        self.vectordb = vectordb(number_of_retrieval_results=3)
 
     def about_me(self):
         return self.name + " is a " + self.job_title \
@@ -48,9 +50,12 @@ class Conversation:
                "AI: Hello, I am available for you 24/7 to ask me questions and get advice.  " \
                "\n\n"
 
-    def get_relevant_statements(self, input, max_tokens):
-        # statements = database.get_relevant_statements(input, max_tokens)
-        return f"\n\nHere are some things {self.name} has said:\n\n"
+    def get_relevant_statements(self, input: str, max_tokens: int) -> str:
+        relevant_statements = self.vectordb.query(query=input)
+        relevant_tokens = " ".join(relevant_statements.split()[:max_tokens])
+        relevant_tokens += "." if not relevant_tokens.endswith(".") else ""
+        output = f"\n\nHere are some things {self.name} has said:\n{relevant_tokens}\n"
+        return output
 
     def update_statements_about_me(self, input):
         sentences = extract_sentences_with_word(input, "I")
