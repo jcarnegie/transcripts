@@ -57,7 +57,6 @@ def main():
         agent_config=agent_config
     )
 
-
     def get_synthesizer(output_audio_config: OutputAudioConfig) -> ElevenLabsSynthesizer:
         synthesizer = ElevenLabsSynthesizer(
             ElevenLabsSynthesizerConfig.from_output_audio_config(
@@ -69,7 +68,6 @@ def main():
             ))
 
         return synthesizer
-
 
     conversation_router = ConversationRouter(
         agent=agent,
