@@ -65,7 +65,7 @@ class Conversation():
             last_part_of_prompt = self.get_clone_prompt()
 
         last_part_of_prompt += "\n\n".join(self.messages[-10:] if len(self.messages) > 10 else self.messages)
-        last_part_of_prompt += "\n\nHuman: " + input + "\n\nAI:"
+        last_part_of_prompt += "\n\nHuman: " + input + ".  Respond concisely in under 4 sentences, like you are on a phone call.\n\nAI:"
 
         total_tokens_used = len(first_part_of_prompt.split(' ')) + len(last_part_of_prompt.split(' '))
         relevant_statements = self.get_relevant_statements(input, max_tokens=MAX_TOKENS-total_tokens_used)
@@ -80,7 +80,7 @@ class Conversation():
         completion = openai.Completion.create(model="text-davinci-003",
                                               prompt=prompt,
                                               temperature=0.9,
-                                              max_tokens=80,
+                                              max_tokens=150,
                                               presence_penalty=0.5,
                                               frequency_penalty=0.5,
                                               stop=["Human:","AI:"])
@@ -135,5 +135,7 @@ if __name__ == "__main__":
 
     while True:
         human_input = input("Client: ")
+        while human_input == '':
+            human_input = input("Client: ")
         response = conversation.predict(human_input)
         print(f"{response}")
