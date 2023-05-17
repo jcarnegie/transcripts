@@ -1,13 +1,16 @@
 import openai
-from os import getenv
-openai.api_key = getenv("OPENAI_API_KEY")
 import re
-from typing import Generator, Optional, Tuple
+from os import getenv
 from vocode.streaming.models.agent import AgentConfig
 from typing import Any
-MAX_TOKENS = 4000
+from .database import vectordb
 
-def extract_sentences_with_word(text, word):
+
+MAX_TOKENS = 4000
+openai.api_key = getenv("OPENAI_API_KEY")
+
+
+def extract_sentences_with_word(text, word) -> list[str]:
     # Split the text into sentences
     sentences = re.split(r'(?<=[.!?])\s+', text)
 
@@ -16,7 +19,8 @@ def extract_sentences_with_word(text, word):
 
     return result
 
-class Conversation():
+
+class Conversation:
     def __init__(self, name, job_title, speaking_style, mode):
         self.name = name
         self.job_title = job_title
@@ -24,6 +28,7 @@ class Conversation():
         self.mode = mode
         self.messages = []
         self.statements_about_me = []
+        self.vectordb = vectordb(number_of_retrieval_results=3)
 
     def about_me(self):
         return self.name + " is a " + self.job_title \
@@ -31,21 +36,26 @@ class Conversation():
             + f"\n\nHere are some things {self.name} has said about themselves: " \
             + "\n".join(self.statements_about_me)
 
-    def get_clone_prompt(self):
+    @staticmethod
+    def get_clone_prompt():
         return "Here is a conversation between Jessica and her clone: \n\n" \
                "Human: You are a clone of me.  " \
                "I am going to teach you to be like me, and you are going to respond to me as if you are me.  " \
                "You are also going to tell me what you think about life and how you handle different situations. " \
                "\n\n"
 
-    def get_coaching_prompt(self):
+    @staticmethod
+    def get_coaching_prompt():
         return "Here is a conversation between Jessica (coach) and her client: \n\n" \
                "AI: Hello, I am available for you 24/7 to ask me questions and get advice.  " \
                "\n\n"
 
-    def get_relevant_statements(self, input, max_tokens):
-        # statements = database.get_relevant_statements(input, max_tokens)
-        return f"\n\nHere are some things {self.name} has said:\n\n"
+    def get_relevant_statements(self, input: str, max_tokens: int) -> str:
+        relevant_statements = self.vectordb.query(query=input)
+        relevant_tokens = " ".join(relevant_statements.split()[:max_tokens])
+        relevant_tokens += "." if not relevant_tokens.endswith(".") else ""
+        output = f"\n\nHere are some things {self.name} has said:\n{relevant_tokens}\n"
+        return output
 
     def update_statements_about_me(self, input):
         sentences = extract_sentences_with_word(input, "I")
@@ -77,13 +87,15 @@ class Conversation():
         print("using prompt: " + prompt)
 
         # create a chat completion
-        completion = openai.Completion.create(model="text-davinci-003",
-                                              prompt=prompt,
-                                              temperature=0.9,
-                                              max_tokens=150,
-                                              presence_penalty=0.5,
-                                              frequency_penalty=0.5,
-                                              stop=["Human:","AI:"])
+        completion = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=prompt,
+            temperature=0.9,
+            max_tokens=150,
+            presence_penalty=0.5,
+            frequency_penalty=0.5,
+            stop=["Human:", "AI:"]
+        )
 
         # add the response to the conversation
         ai_message = completion.choices[0].text
@@ -110,19 +122,31 @@ class Conversation():
     def get_initial_message(self):
         return self.predict("Please greet me with excitement.")
 
+
 class ConversationAgentConfig(AgentConfig):
     name: str = None
     job_title: str = None
     writing_style: str = None
 
-    def __init__(self, name, job_title, writing_style):
+    def __init__(self, name, job_title, writing_style, **data):
+        super().__init__(**data)
         self.name = name
         self.job_title = job_title
         self.writing_style = writing_style
 
 
-
-jessica_speaking_style = 'Jessica has a very calm and relaxed speaking style. She speaks in a slow and considered manner, emphasizing certain words for emphasis. She shows strong empathy and understanding throughout her speaking, helping her audience to relate to her and fully understand her point. She uses thoughtful language and encourages her audience to reflect on their own experiences, making her speaking very engaging and effective. Jessica has a very articulate speaking style, with well-structured sentences that convey her points clearly. She speaks in a comforting and friendly tone, using language that is engaging and easy to understand. Her words have a calming and soothing effect, making her audience more likely to listen and take in her message. She is open and honest about her thoughts and feelings while speaking, further connecting her to her audience, and she shows genuine interest in their own experiences.'
+jessica_speaking_style = '''
+    Jessica has a very calm and relaxed speaking style. She speaks in a slow and considered manner, 
+    emphasizing certain words for emphasis. She shows strong empathy and understanding throughout 
+    her speaking, helping her audience to relate to her and fully understand her point. She uses thoughtful 
+    language and encourages her audience to reflect on their own experiences, making her speaking very 
+    engaging and effective. Jessica has a very articulate speaking style, with well-structured sentences 
+    that convey her points clearly. She speaks in a comforting and friendly tone, using language that is 
+    engaging and easy to understand. Her words have a calming and soothing effect, making her audience 
+    more likely to listen and take in her message. She is open and honest about her thoughts and feelings 
+    while speaking, further connecting her to her audience, and she shows genuine interest in their 
+    own experiences.
+'''
 
 if __name__ == "__main__":
 
