@@ -18,7 +18,6 @@ setup(
     description="Digital Coach",
     packages=find_namespace_packages(
         where="src",
-        include=["stovell.*"],
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     package_dir={"": "src"},
     install_requires=REQUIREMENTS,

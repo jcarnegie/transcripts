@@ -9,7 +9,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.schema import ChatMessage, AIMessage
 import openai
 from typing import AsyncGenerator, Optional, Tuple
-from src.chat import Conversation
+from server.chat import Conversation
 import logging
 from vocode import getenv
 from vocode.streaming.agent.base_agent import BaseAgent

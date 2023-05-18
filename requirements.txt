@@ -3,3 +3,4 @@ vocode==0.1.107
 fastapi==0.95.2
 pinecone-client==2.2.1
 tiktoken==0.4.0
+ffmpeg==1.4
