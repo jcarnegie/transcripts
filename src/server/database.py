@@ -4,7 +4,7 @@ from langchain.vectorstores import Pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.docstore.document import Document
 from typing import Optional
-from logger import logger
+from src.server.logger import logger
 
 
 PINECONE_API_KEY = os.environ.get("PINECODE_API_KEY")
